@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">Rick &amp; Morty · Lab</string>
+    <string name="student_name">Sergio Daniel López Barrientos</string>
+    <string name="student_id">Carné 25848</string>
+    <string name="start">Empezar</string>
+    <string name="characters">Characters</string>
+    <string name="locations">Locations</string>
+    <string name="profile">Profile</string>
+    <string name="character_details">Characters details</string>
+    <string name="location_details">Location details</string>
+    <string name="back">Volver</string>
+    <string name="species">Especie</string>
+    <string name="status">Estado</string>
+    <string name="gender">Género</string>
+    <string name="id_label">ID</string>
+    <string name="name">Name</string>
+    <string name="type">Type</string>
+    <string name="dimension">Dimension</string>
+    <string name="not_found">No se encontró este personaje.</string>
+    <string name="location_not_found">No se encontró esta ubicación.</string>
+    <string name="logo_description">Rick and Morty</string>
+    <string name="image_description">Retrato de %1$s</string>
+    <string name="profile_image">Imagen de perfil</string>
+    <string name="logout">Cerrar sesión</string>
+</resources>
