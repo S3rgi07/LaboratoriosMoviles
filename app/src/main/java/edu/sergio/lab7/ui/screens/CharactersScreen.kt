@@ -10,10 +10,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import edu.sergio.lab7.R
-import edu.sergio.lab7.data.Character
+import edu.sergio.lab7.ui.viewmodel.CharactersUiState
 
 @Composable
-fun CharactersScreen(characters: List<Character>, onCharacterClick: (Int) -> Unit) {
+fun CharactersScreen(
+    state: CharactersUiState,
+    onLoadingClick: () -> Unit,
+    onRetry: () -> Unit,
+    onCharacterClick: (Int) -> Unit,
+) {
+    when {
+        state.isLoading -> LoadingLayout(onClick = onLoadingClick)
+        state.hasError -> ErrorLayout(onRetry = onRetry)
+        else -> CharactersList(state.data, onCharacterClick)
+    }
+}
+
+@Composable
+private fun CharactersList(
+    characters: List<edu.sergio.lab7.data.Character>,
+    onCharacterClick: (Int) -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp),

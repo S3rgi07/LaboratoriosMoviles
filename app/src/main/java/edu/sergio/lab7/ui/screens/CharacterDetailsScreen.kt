@@ -15,11 +15,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import edu.sergio.lab7.R
-import edu.sergio.lab7.data.Character
+import edu.sergio.lab7.ui.viewmodel.CharacterDetailsUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CharacterDetailsScreen(character: Character?, onBack: () -> Unit) {
+fun CharacterDetailsScreen(
+    state: CharacterDetailsUiState,
+    onLoadingClick: () -> Unit,
+    onRetry: () -> Unit,
+    onBack: () -> Unit,
+) {
     val backLabel = stringResource(R.string.back)
     Scaffold(
         topBar = {
@@ -38,21 +43,28 @@ fun CharacterDetailsScreen(character: Character?, onBack: () -> Unit) {
             )
         },
     ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            if (character == null) {
-                Text(stringResource(R.string.not_found))
-            } else {
-                CharacterPortrait(character, Modifier.size(184.dp))
-                Spacer(Modifier.height(20.dp))
-                Text(character.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-                Spacer(Modifier.height(32.dp))
-                Column(Modifier.widthIn(max = 400.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    DetailRow(stringResource(R.string.species), character.species)
-                    DetailRow(stringResource(R.string.status), character.status)
-                    DetailRow(stringResource(R.string.gender), character.gender)
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when {
+                state.isLoading -> LoadingLayout(onClick = onLoadingClick)
+                state.hasError -> ErrorLayout(onRetry = onRetry)
+                else -> Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    val character = state.data
+                    if (character == null) {
+                        Text(stringResource(R.string.not_found))
+                    } else {
+                        CharacterPortrait(character, Modifier.size(184.dp))
+                        Spacer(Modifier.height(20.dp))
+                        Text(character.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                        Spacer(Modifier.height(32.dp))
+                        Column(Modifier.widthIn(max = 400.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                            DetailRow(stringResource(R.string.species), character.species)
+                            DetailRow(stringResource(R.string.status), character.status)
+                            DetailRow(stringResource(R.string.gender), character.gender)
+                        }
+                    }
                 }
             }
         }

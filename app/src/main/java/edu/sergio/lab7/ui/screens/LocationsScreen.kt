@@ -11,10 +11,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import edu.sergio.lab7.data.Location
+import edu.sergio.lab7.ui.viewmodel.LocationsUiState
 
 @Composable
-fun LocationsScreen(locations: List<Location>, onLocationClick: (Int) -> Unit) {
+fun LocationsScreen(
+    state: LocationsUiState,
+    onLoadingClick: () -> Unit,
+    onRetry: () -> Unit,
+    onLocationClick: (Int) -> Unit,
+) {
+    when {
+        state.isLoading -> LoadingLayout(onClick = onLoadingClick)
+        state.hasError -> ErrorLayout(onRetry = onRetry)
+        else -> LocationsList(state.data, onLocationClick)
+    }
+}
+
+@Composable
+private fun LocationsList(
+    locations: List<edu.sergio.lab7.data.Location>,
+    onLocationClick: (Int) -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp),

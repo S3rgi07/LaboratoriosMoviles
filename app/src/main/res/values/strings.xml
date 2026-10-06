@@ -22,4 +22,8 @@
     <string name="image_description">Retrato de %1$s</string>
     <string name="profile_image">Imagen de perfil</string>
     <string name="logout">Cerrar sesión</string>
+    <string name="loading">Cargando…</string>
+    <string name="error_title">Error</string>
+    <string name="error_message">Ocurrió un error al obtener la información.</string>
+    <string name="retry">Reintentar</string>
 </resources>

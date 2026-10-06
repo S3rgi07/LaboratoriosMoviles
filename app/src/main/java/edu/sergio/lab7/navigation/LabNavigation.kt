@@ -15,11 +15,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import edu.sergio.lab7.R
-import edu.sergio.lab7.data.CharacterDb
-import edu.sergio.lab7.data.LocationDb
 import edu.sergio.lab7.ui.screens.*
+import edu.sergio.lab7.ui.viewmodel.*
 
 private enum class BottomSection { CHARACTERS, LOCATIONS, PROFILE }
 
@@ -28,9 +28,6 @@ fun LabNavigation(
     onExit: () -> Unit,
     navController: NavHostController = rememberNavController(),
 ) {
-    val characterDb = remember { CharacterDb() }
-    val locationDb = remember { LocationDb() }
-
     NavHost(navController = navController, startDestination = Login) {
         composable<Login> {
             LoginScreen(onStart = {
@@ -43,16 +40,28 @@ fun LabNavigation(
 
         navigation<CharactersGraph>(startDestination = Characters) {
             composable<Characters> {
+                val charactersViewModel: CharactersViewModel = viewModel()
+                val state by charactersViewModel.uiState.collectAsStateWithLifecycle()
                 BackHandler(onBack = onExit)
                 MainScaffold(
                     selected = BottomSection.CHARACTERS,
                     onSelect = { section -> navigateBottom(navController, section) },
-                ) { CharactersScreen(characterDb.getAllCharacters()) { id -> navController.navigate(CharacterDetails(id)) } }
+                ) {
+                    CharactersScreen(
+                        state = state,
+                        onLoadingClick = charactersViewModel::showError,
+                        onRetry = charactersViewModel::loadCharacters,
+                        onCharacterClick = { id -> navController.navigate(CharacterDetails(id)) },
+                    )
+                }
             }
-            composable<CharacterDetails> { entry ->
-                val route = entry.toRoute<CharacterDetails>()
+            composable<CharacterDetails> {
+                val characterDetailsViewModel: CharacterDetailsViewModel = viewModel()
+                val state by characterDetailsViewModel.uiState.collectAsStateWithLifecycle()
                 CharacterDetailsScreen(
-                    character = runCatching { characterDb.getCharacterById(route.id) }.getOrNull(),
+                    state = state,
+                    onLoadingClick = characterDetailsViewModel::showError,
+                    onRetry = characterDetailsViewModel::loadCharacter,
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -60,15 +69,27 @@ fun LabNavigation(
 
         navigation<LocationsGraph>(startDestination = Locations) {
             composable<Locations> {
+                val locationsViewModel: LocationsViewModel = viewModel()
+                val state by locationsViewModel.uiState.collectAsStateWithLifecycle()
                 MainScaffold(
                     selected = BottomSection.LOCATIONS,
                     onSelect = { section -> navigateBottom(navController, section) },
-                ) { LocationsScreen(locationDb.getAllLocations()) { id -> navController.navigate(LocationDetails(id)) } }
+                ) {
+                    LocationsScreen(
+                        state = state,
+                        onLoadingClick = locationsViewModel::showError,
+                        onRetry = locationsViewModel::loadLocations,
+                        onLocationClick = { id -> navController.navigate(LocationDetails(id)) },
+                    )
+                }
             }
-            composable<LocationDetails> { entry ->
-                val route = entry.toRoute<LocationDetails>()
+            composable<LocationDetails> {
+                val locationDetailsViewModel: LocationDetailsViewModel = viewModel()
+                val state by locationDetailsViewModel.uiState.collectAsStateWithLifecycle()
                 LocationDetailsScreen(
-                    location = runCatching { locationDb.getLocationById(route.id) }.getOrNull(),
+                    state = state,
+                    onLoadingClick = locationDetailsViewModel::showError,
+                    onRetry = locationDetailsViewModel::loadLocation,
                     onBack = { navController.popBackStack() },
                 )
             }

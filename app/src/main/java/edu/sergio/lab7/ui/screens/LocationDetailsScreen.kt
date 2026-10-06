@@ -11,11 +11,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import edu.sergio.lab7.R
-import edu.sergio.lab7.data.Location
+import edu.sergio.lab7.ui.viewmodel.LocationDetailsUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LocationDetailsScreen(location: Location?, onBack: () -> Unit) {
+fun LocationDetailsScreen(
+    state: LocationDetailsUiState,
+    onLoadingClick: () -> Unit,
+    onRetry: () -> Unit,
+    onBack: () -> Unit,
+) {
     val backLabel = stringResource(R.string.back)
     Scaffold(
         topBar = {
@@ -29,19 +34,26 @@ fun LocationDetailsScreen(location: Location?, onBack: () -> Unit) {
             )
         },
     ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            if (location == null) {
-                Text(stringResource(R.string.location_not_found))
-            } else {
-                Text(location.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(8.dp))
-                LocationDetailRow(stringResource(R.string.id_label), location.id.toString())
-                LocationDetailRow(stringResource(R.string.name), location.name)
-                LocationDetailRow(stringResource(R.string.type), location.type)
-                LocationDetailRow(stringResource(R.string.dimension), location.dimension)
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when {
+                state.isLoading -> LoadingLayout(onClick = onLoadingClick)
+                state.hasError -> ErrorLayout(onRetry = onRetry)
+                else -> Column(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    val location = state.data
+                    if (location == null) {
+                        Text(stringResource(R.string.location_not_found))
+                    } else {
+                        Text(location.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(8.dp))
+                        LocationDetailRow(stringResource(R.string.id_label), location.id.toString())
+                        LocationDetailRow(stringResource(R.string.name), location.name)
+                        LocationDetailRow(stringResource(R.string.type), location.type)
+                        LocationDetailRow(stringResource(R.string.dimension), location.dimension)
+                    }
+                }
             }
         }
     }
