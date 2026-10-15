@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import edu.sergio.lab7.R
 
 @Composable
-fun ProfileScreen(onLogout: () -> Unit) {
+fun ProfileScreen(userName: String, onLogout: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -31,7 +31,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
             )
         }
         Spacer(Modifier.height(28.dp))
-        Text(stringResource(R.string.student_name), style = MaterialTheme.typography.titleMedium)
+        Text(userName, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(6.dp))
         Text(stringResource(R.string.student_id), color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(28.dp))

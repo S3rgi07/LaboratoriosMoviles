@@ -3,6 +3,7 @@ package edu.sergio.lab7.navigation
 import kotlinx.serialization.Serializable
 
 @Serializable data object Login
+@Serializable data object SessionGate
 
 // Root destinations used by the bottom navigation.
 @Serializable data object CharactersGraph

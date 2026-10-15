@@ -3,6 +3,8 @@
     <string name="student_name">Sergio Daniel López Barrientos</string>
     <string name="student_id">Carné 25848</string>
     <string name="start">Empezar</string>
+    <string name="user_name">Tu nombre</string>
+    <string name="user_name_hint">Escribe tu nombre</string>
     <string name="characters">Characters</string>
     <string name="locations">Locations</string>
     <string name="profile">Profile</string>

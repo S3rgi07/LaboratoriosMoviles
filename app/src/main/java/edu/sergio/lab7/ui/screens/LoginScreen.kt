@@ -4,6 +4,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -13,7 +17,9 @@ import androidx.compose.ui.unit.dp
 import edu.sergio.lab7.R
 
 @Composable
-fun LoginScreen(onStart: () -> Unit) {
+fun LoginScreen(onStart: (String) -> Unit) {
+    var name by rememberSaveable { mutableStateOf("") }
+
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(28.dp),
@@ -29,8 +35,17 @@ fun LoginScreen(onStart: () -> Unit) {
                         contentDescription = stringResource(R.string.logo_description),
                         modifier = Modifier.widthIn(max = 300.dp).fillMaxWidth().height(110.dp),
                     )
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text(stringResource(R.string.user_name)) },
+                        placeholder = { Text(stringResource(R.string.user_name_hint)) },
+                        singleLine = true,
+                        modifier = Modifier.widthIn(max = 280.dp).fillMaxWidth(),
+                    )
                     Button(
-                        onClick = onStart,
+                        onClick = { onStart(name.trim()) },
+                        enabled = name.isNotBlank(),
                         modifier = Modifier.widthIn(max = 280.dp).fillMaxWidth().heightIn(min = 48.dp),
                     ) { Text(stringResource(R.string.start)) }
                 }

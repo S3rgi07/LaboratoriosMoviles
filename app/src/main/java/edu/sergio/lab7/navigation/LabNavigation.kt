@@ -2,14 +2,16 @@ package edu.sergio.lab7.navigation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -18,6 +20,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import edu.sergio.lab7.R
+import edu.sergio.lab7.data.DataStoreSessionRepository
+import edu.sergio.lab7.data.SessionRepository
 import edu.sergio.lab7.ui.screens.*
 import edu.sergio.lab7.ui.viewmodel.*
 
@@ -27,15 +31,39 @@ private enum class BottomSection { CHARACTERS, LOCATIONS, PROFILE }
 fun LabNavigation(
     onExit: () -> Unit,
     navController: NavHostController = rememberNavController(),
+    sessionRepository: SessionRepository? = null,
 ) {
-    NavHost(navController = navController, startDestination = Login) {
-        composable<Login> {
-            LoginScreen(onStart = {
-                navController.navigate(CharactersGraph) {
-                    popUpTo<Login> { inclusive = true }
-                    launchSingleTop = true
+    val context = LocalContext.current
+    val repository = remember(context, sessionRepository) {
+        sessionRepository ?: DataStoreSessionRepository(context.applicationContext)
+    }
+    val sessionViewModel: SessionViewModel = viewModel(
+        factory = SessionViewModel.factory(repository),
+    )
+    val sessionState by sessionViewModel.uiState.collectAsStateWithLifecycle()
+
+    NavHost(navController = navController, startDestination = SessionGate) {
+        composable<SessionGate> {
+            SessionLoadingScreen()
+            LaunchedEffect(sessionState) {
+                when (sessionState) {
+                    SessionUiState.Loading -> Unit
+                    SessionUiState.LoggedOut -> navController.navigate(Login) {
+                        popUpTo<SessionGate> { inclusive = true }
+                    }
+                    is SessionUiState.LoggedIn -> navigateToCharacters(navController, SessionGate)
                 }
-            })
+            }
+        }
+
+        composable<Login> {
+            BackHandler(onBack = onExit)
+            LaunchedEffect(sessionState) {
+                if (sessionState is SessionUiState.LoggedIn) {
+                    navigateToCharacters(navController, Login)
+                }
+            }
+            LoginScreen(onStart = sessionViewModel::logIn)
         }
 
         navigation<CharactersGraph>(startDestination = Characters) {
@@ -97,20 +125,43 @@ fun LabNavigation(
 
         navigation<ProfileGraph>(startDestination = Profile) {
             composable<Profile> {
+                LaunchedEffect(sessionState) {
+                    if (sessionState is SessionUiState.LoggedOut) {
+                        navController.navigate(Login) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                }
                 MainScaffold(
                     selected = BottomSection.PROFILE,
                     onSelect = { section -> navigateBottom(navController, section) },
                 ) {
-                    ProfileScreen(onLogout = {
-                        navController.navigate(Login) {
-                            // Clear the complete authenticated flow so Android Back cannot reopen it.
-                            popUpTo(navController.graph.id) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    })
+                    val name = (sessionState as? SessionUiState.LoggedIn)?.userName.orEmpty()
+                    ProfileScreen(userName = name, onLogout = sessionViewModel::logOut)
                 }
             }
         }
+    }
+}
+
+private fun navigateToCharacters(navController: NavHostController, source: Any) {
+    navController.navigate(CharactersGraph) {
+        when (source) {
+            Login -> popUpTo<Login> { inclusive = true }
+            SessionGate -> popUpTo<SessionGate> { inclusive = true }
+        }
+        launchSingleTop = true
+    }
+}
+
+@Composable
+private fun SessionLoadingScreen() {
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator()
     }
 }
 
@@ -121,7 +172,7 @@ private fun navigateBottom(navController: NavHostController, section: BottomSect
         BottomSection.PROFILE -> ProfileGraph
     }
     navController.navigate(destination) {
-        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+        popUpTo<CharactersGraph> { saveState = true }
         launchSingleTop = true
         restoreState = true
     }
