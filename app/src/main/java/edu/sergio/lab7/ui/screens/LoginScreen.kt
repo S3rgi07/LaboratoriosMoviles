@@ -17,7 +17,11 @@ import androidx.compose.ui.unit.dp
 import edu.sergio.lab7.R
 
 @Composable
-fun LoginScreen(onStart: (String) -> Unit) {
+fun LoginScreen(
+    isSynchronizing: Boolean,
+    hasError: Boolean,
+    onStart: (String) -> Unit,
+) {
     var name by rememberSaveable { mutableStateOf("") }
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -41,13 +45,33 @@ fun LoginScreen(onStart: (String) -> Unit) {
                         label = { Text(stringResource(R.string.user_name)) },
                         placeholder = { Text(stringResource(R.string.user_name_hint)) },
                         singleLine = true,
+                        enabled = !isSynchronizing,
                         modifier = Modifier.widthIn(max = 280.dp).fillMaxWidth(),
                     )
                     Button(
                         onClick = { onStart(name.trim()) },
-                        enabled = name.isNotBlank(),
+                        enabled = name.isNotBlank() && !isSynchronizing,
                         modifier = Modifier.widthIn(max = 280.dp).fillMaxWidth().heightIn(min = 48.dp),
-                    ) { Text(stringResource(R.string.start)) }
+                    ) {
+                        if (isSynchronizing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(22.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(stringResource(R.string.synchronizing))
+                        } else {
+                            Text(stringResource(R.string.start))
+                        }
+                    }
+                    if (hasError) {
+                        Text(
+                            text = stringResource(R.string.sync_error),
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
             Text(

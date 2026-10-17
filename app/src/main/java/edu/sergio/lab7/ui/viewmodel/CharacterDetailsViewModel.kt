@@ -2,14 +2,17 @@ package edu.sergio.lab7.ui.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import edu.sergio.lab7.data.Character
-import edu.sergio.lab7.data.CharacterDb
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import edu.sergio.lab7.data.local.CharacterDao
+import edu.sergio.lab7.data.local.toModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class CharacterDetailsUiState(
@@ -20,33 +23,26 @@ data class CharacterDetailsUiState(
 
 class CharacterDetailsViewModel(
     savedStateHandle: SavedStateHandle,
+    private val characterDao: CharacterDao,
 ) : ViewModel() {
     private val characterId: Int = checkNotNull(savedStateHandle["id"])
-    private val characterDb = CharacterDb()
-    private val _uiState = MutableStateFlow(CharacterDetailsUiState())
-    val uiState: StateFlow<CharacterDetailsUiState> = _uiState.asStateFlow()
 
-    private var loadJob: Job? = null
+    val uiState = characterDao.observeById(characterId)
+        .map { CharacterDetailsUiState(isLoading = false, data = it?.toModel()) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = CharacterDetailsUiState(),
+        )
 
-    init {
-        loadCharacter()
+    fun toggleFavorite() {
+        val character = uiState.value.data ?: return
+        viewModelScope.launch { characterDao.updateFavorite(character.id, !character.isFavorite) }
     }
 
-    fun loadCharacter() {
-        loadJob?.cancel()
-        _uiState.value = CharacterDetailsUiState(isLoading = true)
-        loadJob = viewModelScope.launch {
-            delay(2_000)
-            _uiState.value = CharacterDetailsUiState(
-                data = runCatching { characterDb.getCharacterById(characterId) }.getOrNull(),
-            )
-        }
-    }
-
-    fun showError() {
-        if (_uiState.value.isLoading) {
-            loadJob?.cancel()
-            _uiState.value = CharacterDetailsUiState(isLoading = false, hasError = true)
+    companion object {
+        fun factory(dao: CharacterDao): ViewModelProvider.Factory = viewModelFactory {
+            initializer { CharacterDetailsViewModel(createSavedStateHandle(), dao) }
         }
     }
 }

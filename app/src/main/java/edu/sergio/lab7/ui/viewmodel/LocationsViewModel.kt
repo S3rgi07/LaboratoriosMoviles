@@ -1,15 +1,16 @@
 package edu.sergio.lab7.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import edu.sergio.lab7.data.Location
-import edu.sergio.lab7.data.LocationDb
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import edu.sergio.lab7.data.local.LocationDao
+import edu.sergio.lab7.data.local.toModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 data class LocationsUiState(
     val isLoading: Boolean = true,
@@ -17,31 +18,18 @@ data class LocationsUiState(
     val hasError: Boolean = false,
 )
 
-class LocationsViewModel(
-    private val locationDb: LocationDb = LocationDb(),
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(LocationsUiState())
-    val uiState: StateFlow<LocationsUiState> = _uiState.asStateFlow()
+class LocationsViewModel(locationDao: LocationDao) : ViewModel() {
+    val uiState = locationDao.observeAll()
+        .map { entities -> LocationsUiState(isLoading = false, data = entities.map { it.toModel() }) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = LocationsUiState(),
+        )
 
-    private var loadJob: Job? = null
-
-    init {
-        loadLocations()
-    }
-
-    fun loadLocations() {
-        loadJob?.cancel()
-        _uiState.value = LocationsUiState(isLoading = true)
-        loadJob = viewModelScope.launch {
-            delay(4_000)
-            _uiState.value = LocationsUiState(data = locationDb.getAllLocations())
-        }
-    }
-
-    fun showError() {
-        if (_uiState.value.isLoading) {
-            loadJob?.cancel()
-            _uiState.value = LocationsUiState(isLoading = false, hasError = true)
+    companion object {
+        fun factory(dao: LocationDao): ViewModelProvider.Factory = viewModelFactory {
+            initializer { LocationsViewModel(dao) }
         }
     }
 }

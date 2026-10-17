@@ -21,7 +21,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import edu.sergio.lab7.R
 import edu.sergio.lab7.data.DataStoreSessionRepository
+import edu.sergio.lab7.data.InitialSyncRepository
 import edu.sergio.lab7.data.SessionRepository
+import edu.sergio.lab7.data.local.AppDatabase
 import edu.sergio.lab7.ui.screens.*
 import edu.sergio.lab7.ui.viewmodel.*
 
@@ -37,10 +39,13 @@ fun LabNavigation(
     val repository = remember(context, sessionRepository) {
         sessionRepository ?: DataStoreSessionRepository(context.applicationContext)
     }
+    val database = remember(context) { AppDatabase.getInstance(context.applicationContext) }
+    val syncRepository = remember(database) { InitialSyncRepository(database) }
     val sessionViewModel: SessionViewModel = viewModel(
-        factory = SessionViewModel.factory(repository),
+        factory = SessionViewModel.factory(repository, syncRepository),
     )
     val sessionState by sessionViewModel.uiState.collectAsStateWithLifecycle()
+    val loginState by sessionViewModel.loginUiState.collectAsStateWithLifecycle()
 
     NavHost(navController = navController, startDestination = SessionGate) {
         composable<SessionGate> {
@@ -63,12 +68,18 @@ fun LabNavigation(
                     navigateToCharacters(navController, Login)
                 }
             }
-            LoginScreen(onStart = sessionViewModel::logIn)
+            LoginScreen(
+                isSynchronizing = loginState.isSynchronizing,
+                hasError = loginState.hasError,
+                onStart = sessionViewModel::logIn,
+            )
         }
 
         navigation<CharactersGraph>(startDestination = Characters) {
             composable<Characters> {
-                val charactersViewModel: CharactersViewModel = viewModel()
+                val charactersViewModel: CharactersViewModel = viewModel(
+                    factory = CharactersViewModel.factory(database.characterDao()),
+                )
                 val state by charactersViewModel.uiState.collectAsStateWithLifecycle()
                 BackHandler(onBack = onExit)
                 MainScaffold(
@@ -77,27 +88,34 @@ fun LabNavigation(
                 ) {
                     CharactersScreen(
                         state = state,
-                        onLoadingClick = charactersViewModel::showError,
-                        onRetry = charactersViewModel::loadCharacters,
+                        onLoadingClick = {},
+                        onRetry = {},
                         onCharacterClick = { id -> navController.navigate(CharacterDetails(id)) },
+                        onFavoriteClick = charactersViewModel::toggleFavorite,
+                        onFavoritesFilterChange = charactersViewModel::setFavoritesOnly,
                     )
                 }
             }
             composable<CharacterDetails> {
-                val characterDetailsViewModel: CharacterDetailsViewModel = viewModel()
+                val characterDetailsViewModel: CharacterDetailsViewModel = viewModel(
+                    factory = CharacterDetailsViewModel.factory(database.characterDao()),
+                )
                 val state by characterDetailsViewModel.uiState.collectAsStateWithLifecycle()
                 CharacterDetailsScreen(
                     state = state,
-                    onLoadingClick = characterDetailsViewModel::showError,
-                    onRetry = characterDetailsViewModel::loadCharacter,
+                    onLoadingClick = {},
+                    onRetry = {},
                     onBack = { navController.popBackStack() },
+                    onFavoriteClick = characterDetailsViewModel::toggleFavorite,
                 )
             }
         }
 
         navigation<LocationsGraph>(startDestination = Locations) {
             composable<Locations> {
-                val locationsViewModel: LocationsViewModel = viewModel()
+                val locationsViewModel: LocationsViewModel = viewModel(
+                    factory = LocationsViewModel.factory(database.locationDao()),
+                )
                 val state by locationsViewModel.uiState.collectAsStateWithLifecycle()
                 MainScaffold(
                     selected = BottomSection.LOCATIONS,
@@ -105,19 +123,21 @@ fun LabNavigation(
                 ) {
                     LocationsScreen(
                         state = state,
-                        onLoadingClick = locationsViewModel::showError,
-                        onRetry = locationsViewModel::loadLocations,
+                        onLoadingClick = {},
+                        onRetry = {},
                         onLocationClick = { id -> navController.navigate(LocationDetails(id)) },
                     )
                 }
             }
             composable<LocationDetails> {
-                val locationDetailsViewModel: LocationDetailsViewModel = viewModel()
+                val locationDetailsViewModel: LocationDetailsViewModel = viewModel(
+                    factory = LocationDetailsViewModel.factory(database.locationDao()),
+                )
                 val state by locationDetailsViewModel.uiState.collectAsStateWithLifecycle()
                 LocationDetailsScreen(
                     state = state,
-                    onLoadingClick = locationDetailsViewModel::showError,
-                    onRetry = locationDetailsViewModel::loadLocation,
+                    onLoadingClick = {},
+                    onRetry = {},
                     onBack = { navController.popBackStack() },
                 )
             }

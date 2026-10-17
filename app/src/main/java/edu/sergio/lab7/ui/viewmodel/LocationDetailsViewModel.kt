@@ -2,15 +2,17 @@ package edu.sergio.lab7.ui.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import edu.sergio.lab7.data.Location
-import edu.sergio.lab7.data.LocationDb
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import edu.sergio.lab7.data.local.LocationDao
+import edu.sergio.lab7.data.local.toModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 data class LocationDetailsUiState(
     val isLoading: Boolean = true,
@@ -20,33 +22,21 @@ data class LocationDetailsUiState(
 
 class LocationDetailsViewModel(
     savedStateHandle: SavedStateHandle,
+    locationDao: LocationDao,
 ) : ViewModel() {
     private val locationId: Int = checkNotNull(savedStateHandle["id"])
-    private val locationDb = LocationDb()
-    private val _uiState = MutableStateFlow(LocationDetailsUiState())
-    val uiState: StateFlow<LocationDetailsUiState> = _uiState.asStateFlow()
 
-    private var loadJob: Job? = null
+    val uiState = locationDao.observeById(locationId)
+        .map { LocationDetailsUiState(isLoading = false, data = it?.toModel()) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = LocationDetailsUiState(),
+        )
 
-    init {
-        loadLocation()
-    }
-
-    fun loadLocation() {
-        loadJob?.cancel()
-        _uiState.value = LocationDetailsUiState(isLoading = true)
-        loadJob = viewModelScope.launch {
-            delay(2_000)
-            _uiState.value = LocationDetailsUiState(
-                data = runCatching { locationDb.getLocationById(locationId) }.getOrNull(),
-            )
-        }
-    }
-
-    fun showError() {
-        if (_uiState.value.isLoading) {
-            loadJob?.cancel()
-            _uiState.value = LocationDetailsUiState(isLoading = false, hasError = true)
+    companion object {
+        fun factory(dao: LocationDao): ViewModelProvider.Factory = viewModelFactory {
+            initializer { LocationDetailsViewModel(createSavedStateHandle(), dao) }
         }
     }
 }

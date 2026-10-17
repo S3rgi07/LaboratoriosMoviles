@@ -1,47 +1,53 @@
 package edu.sergio.lab7.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import edu.sergio.lab7.data.Character
-import edu.sergio.lab7.data.CharacterDb
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import edu.sergio.lab7.data.local.CharacterDao
+import edu.sergio.lab7.data.local.toModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class CharactersUiState(
     val isLoading: Boolean = true,
     val data: List<Character> = emptyList(),
     val hasError: Boolean = false,
+    val showFavoritesOnly: Boolean = false,
 )
 
-class CharactersViewModel(
-    private val characterDb: CharacterDb = CharacterDb(),
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(CharactersUiState())
-    val uiState: StateFlow<CharactersUiState> = _uiState.asStateFlow()
+class CharactersViewModel(private val characterDao: CharacterDao) : ViewModel() {
+    private val showFavoritesOnly = MutableStateFlow(false)
 
-    private var loadJob: Job? = null
+    val uiState = combine(characterDao.observeAll(), showFavoritesOnly) { entities, onlyFavorites ->
+        val characters = entities.map { it.toModel() }
+        CharactersUiState(
+            isLoading = false,
+            data = if (onlyFavorites) characters.filter(Character::isFavorite) else characters,
+            showFavoritesOnly = onlyFavorites,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = CharactersUiState(),
+    )
 
-    init {
-        loadCharacters()
+    fun setFavoritesOnly(enabled: Boolean) {
+        showFavoritesOnly.value = enabled
     }
 
-    fun loadCharacters() {
-        loadJob?.cancel()
-        _uiState.value = CharactersUiState(isLoading = true)
-        loadJob = viewModelScope.launch {
-            delay(4_000)
-            _uiState.value = CharactersUiState(data = characterDb.getAllCharacters())
-        }
+    fun toggleFavorite(character: Character) {
+        viewModelScope.launch { characterDao.updateFavorite(character.id, !character.isFavorite) }
     }
 
-    fun showError() {
-        if (_uiState.value.isLoading) {
-            loadJob?.cancel()
-            _uiState.value = CharactersUiState(isLoading = false, hasError = true)
+    companion object {
+        fun factory(dao: CharacterDao): ViewModelProvider.Factory = viewModelFactory {
+            initializer { CharactersViewModel(dao) }
         }
     }
 }

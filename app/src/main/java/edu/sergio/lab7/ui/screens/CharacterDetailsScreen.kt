@@ -24,8 +24,11 @@ fun CharacterDetailsScreen(
     onLoadingClick: () -> Unit,
     onRetry: () -> Unit,
     onBack: () -> Unit,
+    onFavoriteClick: () -> Unit,
 ) {
     val backLabel = stringResource(R.string.back)
+    val addFavoriteLabel = stringResource(R.string.add_favorite)
+    val removeFavoriteLabel = stringResource(R.string.remove_favorite)
     Scaffold(
         topBar = {
             TopAppBar(
@@ -33,6 +36,24 @@ fun CharacterDetailsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = backLabel }) {
                         Text("←", fontSize = 28.sp)
+                    }
+                },
+                actions = {
+                    val character = state.data
+                    if (character != null) {
+                        IconButton(onClick = onFavoriteClick) {
+                            Text(
+                                text = if (character.isFavorite) "★" else "☆",
+                                fontSize = 28.sp,
+                                modifier = Modifier.semantics {
+                                    contentDescription = if (character.isFavorite) {
+                                        "$removeFavoriteLabel ${character.name}"
+                                    } else {
+                                        "$addFavoriteLabel ${character.name}"
+                                    }
+                                },
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
