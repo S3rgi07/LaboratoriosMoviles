@@ -8,8 +8,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import edu.sergio.lab7.data.Character
-import edu.sergio.lab7.data.local.CharacterDao
-import edu.sergio.lab7.data.local.toModel
+import edu.sergio.lab7.data.CharacterRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -23,26 +22,44 @@ data class CharacterDetailsUiState(
 
 class CharacterDetailsViewModel(
     savedStateHandle: SavedStateHandle,
-    private val characterDao: CharacterDao,
+    private val repository: CharacterRepository,
 ) : ViewModel() {
     private val characterId: Int = checkNotNull(savedStateHandle["id"])
 
-    val uiState = characterDao.observeById(characterId)
-        .map { CharacterDetailsUiState(isLoading = false, data = it?.toModel()) }
+    val uiState = repository.observeById(characterId)
+        .map { CharacterDetailsUiState(isLoading = false, data = it) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = CharacterDetailsUiState(),
         )
 
-    fun toggleFavorite() {
+    fun updateCharacter(name: String, status: String, species: String, gender: String, image: String) {
         val character = uiState.value.data ?: return
-        viewModelScope.launch { characterDao.updateFavorite(character.id, !character.isFavorite) }
+        viewModelScope.launch {
+            repository.update(
+                character.copy(
+                    name = name.trim(),
+                    status = status.trim(),
+                    species = species.trim(),
+                    gender = gender.trim(),
+                    image = image.trim(),
+                ),
+            )
+        }
+    }
+
+    fun deleteCharacter(onDeleted: () -> Unit) {
+        val character = uiState.value.data ?: return
+        viewModelScope.launch {
+            repository.delete(character.id)
+            onDeleted()
+        }
     }
 
     companion object {
-        fun factory(dao: CharacterDao): ViewModelProvider.Factory = viewModelFactory {
-            initializer { CharacterDetailsViewModel(createSavedStateHandle(), dao) }
+        fun factory(repository: CharacterRepository): ViewModelProvider.Factory = viewModelFactory {
+            initializer { CharacterDetailsViewModel(createSavedStateHandle(), repository) }
         }
     }
 }

@@ -23,6 +23,18 @@ fun Character.toEntity() = CharacterEntity(
     isFavorite = isFavorite,
 )
 
-fun LocationEntity.toModel() = Location(id = id, name = name, type = type, dimension = dimension)
+fun LocationEntity.toModel() = Location(
+    id = id,
+    name = name,
+    type = type,
+    dimension = dimension,
+    isFavorite = isFavorite,
+)
 
-fun Location.toEntity() = LocationEntity(id = id, name = name, type = type, dimension = dimension)
+fun Location.toEntity() = LocationEntity(
+    id = id,
+    name = name,
+    type = type,
+    dimension = dimension,
+    isFavorite = isFavorite,
+)

@@ -7,7 +7,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import edu.sergio.lab7.data.InitialSyncRepository
 import edu.sergio.lab7.data.SessionRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,7 +47,6 @@ class SessionViewModel(
         viewModelScope.launch {
             _loginUiState.value = LoginUiState(isSynchronizing = true)
             runCatching {
-                delay(4_000)
                 syncRepository.synchronizeIfNeeded()
                 repository.saveUserName(name)
                 _loginUiState.value = LoginUiState()

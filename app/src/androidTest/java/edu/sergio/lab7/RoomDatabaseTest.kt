@@ -10,7 +10,6 @@ import edu.sergio.lab7.data.local.LocationEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -41,8 +40,9 @@ class RoomDatabaseTest {
         )
 
         database.characterDao().updateFavorite(1, true)
+        database.locationDao().updateFavorite(1, true)
 
         assertTrue(database.characterDao().observeById(1).first()!!.isFavorite)
-        assertEquals(1, database.locationDao().observeAll().first().size)
+        assertTrue(database.locationDao().observeById(1).first()!!.isFavorite)
     }
 }

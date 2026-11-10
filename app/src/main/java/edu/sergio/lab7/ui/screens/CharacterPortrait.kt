@@ -13,7 +13,6 @@ import edu.sergio.lab7.data.Character
 
 @Composable
 fun CharacterPortrait(character: Character, modifier: Modifier = Modifier) {
-    // Coil descarga por HTTPS y conserva las imágenes en caché.
     AsyncImage(
         model = character.image,
         contentDescription = stringResource(R.string.image_description, character.name),

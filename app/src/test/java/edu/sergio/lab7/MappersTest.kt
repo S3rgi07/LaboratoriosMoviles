@@ -17,7 +17,7 @@ class MappersTest {
 
     @Test
     fun locationRoundTripPreservesAllFields() {
-        val location = Location(1, "Earth", "Planet", "C-137")
+        val location = Location(1, "Earth", "Planet", "C-137", isFavorite = true)
 
         assertEquals(location, location.toEntity().toModel())
     }

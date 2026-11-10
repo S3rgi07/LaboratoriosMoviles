@@ -22,6 +22,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import edu.sergio.lab7.R
 import edu.sergio.lab7.data.DataStoreSessionRepository
 import edu.sergio.lab7.data.InitialSyncRepository
+import edu.sergio.lab7.data.LocalCharacterRepository
+import edu.sergio.lab7.data.LocalLocationRepository
 import edu.sergio.lab7.data.SessionRepository
 import edu.sergio.lab7.data.local.AppDatabase
 import edu.sergio.lab7.ui.screens.*
@@ -41,6 +43,8 @@ fun LabNavigation(
     }
     val database = remember(context) { AppDatabase.getInstance(context.applicationContext) }
     val syncRepository = remember(database) { InitialSyncRepository(database) }
+    val characterRepository = remember(database) { LocalCharacterRepository(database.characterDao()) }
+    val locationRepository = remember(database) { LocalLocationRepository(database.locationDao()) }
     val sessionViewModel: SessionViewModel = viewModel(
         factory = SessionViewModel.factory(repository, syncRepository),
     )
@@ -78,7 +82,7 @@ fun LabNavigation(
         navigation<CharactersGraph>(startDestination = Characters) {
             composable<Characters> {
                 val charactersViewModel: CharactersViewModel = viewModel(
-                    factory = CharactersViewModel.factory(database.characterDao()),
+                    factory = CharactersViewModel.factory(characterRepository),
                 )
                 val state by charactersViewModel.uiState.collectAsStateWithLifecycle()
                 BackHandler(onBack = onExit)
@@ -91,14 +95,13 @@ fun LabNavigation(
                         onLoadingClick = {},
                         onRetry = {},
                         onCharacterClick = { id -> navController.navigate(CharacterDetails(id)) },
-                        onFavoriteClick = charactersViewModel::toggleFavorite,
-                        onFavoritesFilterChange = charactersViewModel::setFavoritesOnly,
+                        onCreate = charactersViewModel::createCharacter,
                     )
                 }
             }
             composable<CharacterDetails> {
                 val characterDetailsViewModel: CharacterDetailsViewModel = viewModel(
-                    factory = CharacterDetailsViewModel.factory(database.characterDao()),
+                    factory = CharacterDetailsViewModel.factory(characterRepository),
                 )
                 val state by characterDetailsViewModel.uiState.collectAsStateWithLifecycle()
                 CharacterDetailsScreen(
@@ -106,7 +109,12 @@ fun LabNavigation(
                     onLoadingClick = {},
                     onRetry = {},
                     onBack = { navController.popBackStack() },
-                    onFavoriteClick = characterDetailsViewModel::toggleFavorite,
+                    onUpdate = characterDetailsViewModel::updateCharacter,
+                    onDelete = {
+                        characterDetailsViewModel.deleteCharacter {
+                            navController.popBackStack()
+                        }
+                    },
                 )
             }
         }
@@ -114,7 +122,7 @@ fun LabNavigation(
         navigation<LocationsGraph>(startDestination = Locations) {
             composable<Locations> {
                 val locationsViewModel: LocationsViewModel = viewModel(
-                    factory = LocationsViewModel.factory(database.locationDao()),
+                    factory = LocationsViewModel.factory(locationRepository),
                 )
                 val state by locationsViewModel.uiState.collectAsStateWithLifecycle()
                 MainScaffold(
@@ -126,12 +134,14 @@ fun LabNavigation(
                         onLoadingClick = {},
                         onRetry = {},
                         onLocationClick = { id -> navController.navigate(LocationDetails(id)) },
+                        onFavoriteClick = locationsViewModel::toggleFavorite,
+                        onFilterChange = locationsViewModel::setFilter,
                     )
                 }
             }
             composable<LocationDetails> {
                 val locationDetailsViewModel: LocationDetailsViewModel = viewModel(
-                    factory = LocationDetailsViewModel.factory(database.locationDao()),
+                    factory = LocationDetailsViewModel.factory(locationRepository),
                 )
                 val state by locationDetailsViewModel.uiState.collectAsStateWithLifecycle()
                 LocationDetailsScreen(
@@ -139,6 +149,7 @@ fun LabNavigation(
                     onLoadingClick = {},
                     onRetry = {},
                     onBack = { navController.popBackStack() },
+                    onFavoriteClick = locationDetailsViewModel::toggleFavorite,
                 )
             }
         }
